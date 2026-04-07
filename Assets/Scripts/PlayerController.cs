@@ -3,22 +3,29 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
-    public float baseMoveSpeed = 10f;
-    public float baseJumpForce = 10f;
-    public float hAccelerationScale = 0.1f;
+    public float baseMoveSpeed = 5f;
+    public float baseJumpForce = 7.5f;
+    
+    public float baseDashForce = 10f;
+    public float baseDashCooldown = 1f;
+    public float hAccelerationScale = 0.003f;
 
     Vector2 currentVelocity = Vector2.zero;
-    bool isGrounded = false;
+
+    GroundCheck groundCheck;
+    float dashCooldownTimer = 0f;
+    bool dashReady = true;
     InputAction movement;
     InputAction jump;
-    //InputAction dash;
+    InputAction dash;
     Rigidbody2D rb;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         movement = InputSystem.actions.FindAction("Move");
         jump = InputSystem.actions.FindAction("Jump");
-        //dash = InputSystem.actions.FindAction("Dash");
+        dash = InputSystem.actions.FindAction("Dash");
+        GroundCheck groundCheck = GetComponentInChildren<GroundCheck>();
         rb = GetComponent<Rigidbody2D>();
     }
 
@@ -26,8 +33,20 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         HandlePlayerStrafe();
+        HandlePlayerDash();
         HandlePlayerJump();
-        CheckForGround();
+        DecrementCooldowns();
+    }
+    void DecrementCooldowns()
+    {
+        if (!dashReady)
+        {
+            dashCooldownTimer -= Time.deltaTime;
+            if (dashCooldownTimer <= 0f)
+            {
+                dashReady = true;
+            }
+        }
     }
 
     void HandlePlayerStrafe()
@@ -40,12 +59,30 @@ public class PlayerController : MonoBehaviour
         rb.linearVelocity = newVelocity;
     }
 
+    void HandlePlayerDash()
+    {
+        if (dash.WasPressedThisFrame() && dashReady)
+        {
+            // Handle dash action
+            Vector2 dashDirection = new Vector2(movement.ReadValue<Vector2>().x, 0).normalized;
+            if (dashDirection != Vector2.zero)
+            {
+                rb.linearVelocity = new Vector2(0, rb.linearVelocity.y); // Reset horizontal velocity before dashing
+                rb.AddForce(dashDirection * baseDashForce, ForceMode2D.Impulse);
+                // Start cooldown timer
+                dashCooldownTimer = baseDashCooldown;
+                dashReady = false;
+            }
+            //TODO handle dash direction when no movement input is given (dash in facing direction)
+        }
+    }
+
     void HandlePlayerJump()
     {
         if (jump.WasPressedThisFrame())
         {
             // Handle jump action
-            if (isGrounded)
+            if (1 == 1) //TODO actually deal with ground checking
             {
                 rb.AddForce(new Vector2(0, baseJumpForce), ForceMode2D.Impulse);
             }
@@ -58,20 +95,6 @@ public class PlayerController : MonoBehaviour
                 // Reduce the upward velocity when the jump button is released
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * 0.5f);
             }
-        }
-    }
-
-    void CheckForGround()
-    {
-        // Check if the player is grounded using a raycast
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 0.1f);
-        if (hit.collider != null)
-        {
-            isGrounded = true;
-        }
-        else
-        {
-            isGrounded = false;
         }
     }
 }
