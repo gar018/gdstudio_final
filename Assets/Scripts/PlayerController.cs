@@ -3,16 +3,24 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
-    public float baseMoveSpeed = 5f;
-    public float baseJumpForce = 7.5f;
-    
-    public float baseDashForce = 10f;
-    public float baseDashCooldown = 1f;
-    public float hAccelerationScale = 0.003f;
+    [SerializeField]
+    private float baseMoveSpeed = 5f;
+    [SerializeField]
+    private float baseJumpForce = 7.5f;
+    [SerializeField]
+    private float baseDashForce = 10f;
+    [SerializeField]
+    private float baseDashCooldown = 1f;
+    [SerializeField]
+    private float hAccelerationScale = 0.003f;
+
+    //public static event Action<Vector2> OnPlayerJump;
+    //public static event Action<Vector2> OnPlayerDash;
 
     Vector2 currentVelocity = Vector2.zero;
 
-    GroundCheck groundCheck;
+    bool isGrounded = false;
+    Transform groundCheckTransform;
     float dashCooldownTimer = 0f;
     bool dashReady = true;
     InputAction movement;
@@ -25,8 +33,8 @@ public class PlayerController : MonoBehaviour
         movement = InputSystem.actions.FindAction("Move");
         jump = InputSystem.actions.FindAction("Jump");
         dash = InputSystem.actions.FindAction("Dash");
-        GroundCheck groundCheck = GetComponentInChildren<GroundCheck>();
         rb = GetComponent<Rigidbody2D>();
+        groundCheckTransform = transform.Find("Ground");
     }
 
     // Update is called once per frame
@@ -36,6 +44,7 @@ public class PlayerController : MonoBehaviour
         HandlePlayerDash();
         HandlePlayerJump();
         DecrementCooldowns();
+        GroundCheck();
     }
     void DecrementCooldowns()
     {
@@ -79,7 +88,7 @@ public class PlayerController : MonoBehaviour
 
     void HandlePlayerJump()
     {
-        if (jump.WasPressedThisFrame())
+        if (jump.WasPressedThisFrame() && isGrounded)
         {
             // Handle jump action
             if (1 == 1) //TODO actually deal with ground checking
@@ -96,5 +105,20 @@ public class PlayerController : MonoBehaviour
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * 0.5f);
             }
         }
+    }
+
+    void GroundCheck()
+    {
+        Vector3 origin = groundCheckTransform.position - Vector3.up * 0.001f; // Slightly above the ground check position to avoid self-collision
+        isGrounded = Physics2D.Raycast(origin, Vector2.down, 0.15f);
+    }
+    //add a debug gizmo to show the ground check raycast
+    void OnDrawGizmosSelected()
+    {   
+        if (groundCheckTransform != null)
+        {
+            Gizmos.color = isGrounded ? Color.green : Color.red;
+            Gizmos.DrawLine(groundCheckTransform.position, groundCheckTransform.position + Vector3.down * 0.15f);
+        } 
     }
 }

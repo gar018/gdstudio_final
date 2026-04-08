@@ -2,14 +2,9 @@ using UnityEngine;
 
 public class GroundCheck : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public bool isGrounded => Physics.Raycast(transform.position, Vector3.down, .15f);
+    void OnDrawGizmosSelected()
     {
-        
-    }
-
-    // Update is called once per frame
-    void LateUpdate()
-    {
+        Debug.DrawLine(transform.position, transform.position + Vector3.down * .15f, isGrounded ? Color.white : Color.red);
     }
 }
